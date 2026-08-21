@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Background Converter Pro (Up to 2GB)</title>
+    <title>PDF Background Converter Pro (Up to 2GB) • By Abhay Singh</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -32,10 +32,9 @@
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .light-glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(229, 231, 235, 1);
+        .red-brand {
+            color: #ef4444;
+            text-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
         }
     </style>
 </head>
@@ -54,8 +53,8 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Fast Multi-Threaded Engine
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/30">
+                    <i class="fa-solid fa-code text-xs"></i> Developed by <span class="uppercase tracking-wider font-extrabold text-red-500">ABHAY SINGH</span>
                 </span>
             </div>
         </div>
@@ -92,9 +91,9 @@
                     <p class="text-slate-400 text-sm mb-4">or <span class="text-brand-400 font-medium hover:underline">browse from computer</span></p>
 
                     <div class="inline-flex items-center gap-4 text-xs text-slate-500 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
-                        <span><i class="fa-solid fa-shield-halved text-brand-400 mr-1"></i> Supports up to 2GB</span>
+                        <span><i class="fa-solid fa-shield-halved text-brand-400 mr-1"></i> Supports Large PDFs (Up to 2GB)</span>
                         <span>•</span>
-                        <span><i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Super Fast Speed</span>
+                        <span><i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Live Upload Counter</span>
                     </div>
                 </div>
 
@@ -154,16 +153,16 @@
                         <i class="fa-solid fa-circle-notch text-3xl"></i>
                     </div>
                     <h3 id="progressTitle" class="text-xl font-bold text-white mb-1">Processing your PDF...</h3>
-                    <p id="progressMessage" class="text-sm text-slate-400">Initializing conversion pipeline</p>
+                    <p id="progressMessage" class="text-sm font-medium text-brand-400">Initializing upload...</p>
                 </div>
 
                 <!-- Progress Bar -->
                 <div class="w-full bg-slate-900 rounded-full h-4 overflow-hidden border border-slate-800 p-0.5 mb-3">
-                    <div id="progressBar" class="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-300 w-0"></div>
+                    <div id="progressBar" class="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-200 w-0"></div>
                 </div>
 
                 <div class="flex justify-between items-center text-xs text-slate-400 px-1">
-                    <span id="pageStats">0 / 0 pages</span>
+                    <span id="pageStats">Preparing...</span>
                     <span id="percentText" class="font-bold text-brand-400">0%</span>
                 </div>
             </div>
@@ -190,9 +189,12 @@
 
     </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        <p>© 2026 PDF Background Converter Pro • Multi-Threaded Engine</p>
+    <!-- Footer with RED COLOR "ABHAY SINGH" Branding -->
+    <footer class="border-t border-slate-900 py-6 text-center text-sm">
+        <p class="text-slate-400 font-medium">
+            Designed & Developed by <span class="text-red-600 font-extrabold uppercase text-base tracking-wider red-brand">ABHAY SINGH</span>
+        </p>
+        <p class="text-xs text-slate-600 mt-1">PDF Background Converter Pro • 2GB Large File Multi-Threaded Engine</p>
     </footer>
 
     <!-- App JS -->

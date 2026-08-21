@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startConvertBtn.disabled = true;
     });
 
-    startConvertBtn.addEventListener('click', async () => {
+    startConvertBtn.addEventListener('click', () => {
         if (!selectedFile) return;
 
         const formData = new FormData();
@@ -88,28 +88,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         uploadContainer.classList.add('hidden');
         progressContainer.classList.remove('hidden');
-        updateProgress(0, 0, 'Uploading file to server...', 0);
+        updateProgress(0, 'Starting file upload...', 'Initializing...');
 
-        try {
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Upload failed');
+        const xhr = new XMLHttpRequest();
+        
+        // Track live upload progress for large files (up to 2GB)
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const uploadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
+                const totalMB = (e.total / (1024 * 1024)).toFixed(1);
+                const uploadPct = Math.round((e.loaded / e.total) * 100);
+                
+                // Map upload phase to 0% - 20% overall progress
+                const overallPct = Math.round(uploadPct * 0.20);
+                updateProgress(
+                    overallPct, 
+                    `Uploading: ${uploadedMB} MB / ${totalMB} MB (${uploadPct}%)`,
+                    `Upload Progress: ${uploadPct}%`
+                );
             }
+        };
 
-            const data = await response.json();
-            currentTaskId = data.task_id;
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    currentTaskId = data.task_id;
+                    updateProgress(20, 'Upload finished. Processing PDF pages...', 'Starting conversion...');
+                    pollInterval = setInterval(() => checkTaskProgress(currentTaskId), 500);
+                } catch (e) {
+                    alert('Error parsing upload response.');
+                    resetUI();
+                }
+            } else {
+                alert('Upload error: HTTP ' + xhr.status);
+                resetUI();
+            }
+        };
 
-            pollInterval = setInterval(() => checkTaskProgress(currentTaskId), 600);
-
-        } catch (error) {
-            alert('Upload error: ' + error.message);
+        xhr.onerror = () => {
+            alert('Upload network error. Please try again.');
             resetUI();
-        }
+        };
+
+        xhr.open('POST', '/api/upload', true);
+        xhr.send(formData);
     });
 
     async function checkTaskProgress(taskId) {
@@ -118,7 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) return;
 
             const data = await res.json();
-            updateProgress(data.percent, data.total_pages, data.message);
+            // Map server progress 0-100% to 20%-100% overall progress
+            const overallPct = 20 + Math.round((data.percent / 100) * 80);
+            updateProgress(overallPct, data.message, data.total_pages ? `Total Pages: ${data.total_pages}` : 'Processing pages...');
 
             if (data.status === 'completed' || data.percent >= 100) {
                 clearInterval(pollInterval);
@@ -133,14 +158,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateProgress(percent, totalPages, message) {
+    function updateProgress(percent, message, pageText) {
         progressBar.style.width = `${percent}%`;
         percentText.textContent = `${percent}%`;
         progressMessage.textContent = message;
-        if (totalPages > 0) {
-            pageStats.textContent = `Total Pages: ${totalPages}`;
-        } else {
-            pageStats.textContent = 'Preparing pages...';
+        if (pageText) {
+            pageStats.textContent = pageText;
         }
     }
 
@@ -152,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadBtn.href = downloadUrl;
         downloadBtn.setAttribute('download', filename);
         
-        // Direct click handler for guaranteed browser download
         downloadBtn.onclick = (e) => {
             e.preventDefault();
             window.location.href = downloadUrl;
