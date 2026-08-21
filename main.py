@@ -20,7 +20,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = FastAPI(title="PDF Background Converter Pro")
 
-# Enable CORS for smooth browser downloads
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -93,51 +92,55 @@ def run_conversion_task(task_id: str, input_path: str, output_path: str, white_b
             except:
                 pass
 
-@app.post("/api/upload")
-async def upload_pdf(
-    file: UploadFile = File(...),
+# Chunked upload endpoint to handle 2GB files without network timeout errors
+@app.post("/api/upload_chunk")
+async def upload_chunk(
+    chunk: UploadFile = File(...),
+    task_id: str = Form(...),
+    chunk_index: int = Form(...),
+    total_chunks: int = Form(...),
+    filename: str = Form(...),
     white_bg: bool = Form(True),
     remove_pen: bool = Form(False),
     high_contrast: bool = Form(True)
 ):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
-        
-    task_id = str(uuid.uuid4())
-    filename = file.filename
     clean_filename = f"white_bg_{os.path.splitext(filename)[0]}.pdf"
-    
     input_path = os.path.join(UPLOAD_DIR, f"{task_id}.pdf")
     output_path = os.path.join(OUTPUT_DIR, f"{task_id}_{clean_filename}")
-    
-    # Ultra-fast streaming upload using shutil
-    with open(input_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-            
+
+    # Append chunk bytes to destination file
+    with open(input_path, "ab") as buffer:
+        content = await chunk.read()
+        buffer.write(content)
+        
     tasks_progress[task_id] = {
         "percent": 0,
         "total_pages": 0,
-        "message": "File uploaded successfully. Starting conversion...",
-        "status": "started",
+        "message": f"Uploading chunk {chunk_index+1}/{total_chunks}...",
+        "status": "uploading",
         "filename": clean_filename,
         "out_path": output_path
     }
     save_db(tasks_progress)
-    
-    # Run conversion asynchronously in executor
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(
-        None, 
-        run_conversion_task, 
-        task_id, 
-        input_path, 
-        output_path, 
-        white_bg, 
-        remove_pen, 
-        high_contrast
-    )
-    
-    return {"task_id": task_id, "status": "started"}
+
+    # When all chunks arrive, start conversion thread
+    if chunk_index == total_chunks - 1:
+        tasks_progress[task_id]["message"] = "Upload complete. Starting background conversion..."
+        save_db(tasks_progress)
+        
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(
+            None, 
+            run_conversion_task, 
+            task_id, 
+            input_path, 
+            output_path, 
+            white_bg, 
+            remove_pen, 
+            high_contrast
+        )
+
+    return {"task_id": task_id, "status": "chunk_received", "chunk_index": chunk_index}
 
 @app.get("/api/progress/{task_id}")
 async def get_progress(task_id: str):
@@ -177,5 +180,4 @@ async def download_file(task_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    # reload=False to prevent server restarts during uploads
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

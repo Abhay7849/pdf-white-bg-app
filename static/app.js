@@ -77,62 +77,75 @@ document.addEventListener('DOMContentLoaded', () => {
         startConvertBtn.disabled = true;
     });
 
-    startConvertBtn.addEventListener('click', () => {
-        if (!selectedFile) return;
+    // Generate random UUID in JS
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('white_bg', document.getElementById('optWhiteBg').checked);
-        formData.append('remove_pen', document.getElementById('optRemovePen').checked);
-        formData.append('high_contrast', true);
+    // Ultra-reliable Chunked Upload Handler (5MB chunks)
+    startConvertBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
 
         uploadContainer.classList.add('hidden');
         progressContainer.classList.remove('hidden');
-        updateProgress(0, 'Starting file upload...', 'Initializing...');
-
-        const xhr = new XMLHttpRequest();
         
-        // Track live upload progress for large files (up to 2GB)
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-                const uploadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
-                const totalMB = (e.total / (1024 * 1024)).toFixed(1);
-                const uploadPct = Math.round((e.loaded / e.total) * 100);
-                
-                // Map upload phase to 0% - 20% overall progress
-                const overallPct = Math.round(uploadPct * 0.20);
+        currentTaskId = generateUUID();
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks (never times out)
+        const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+        const whiteBg = document.getElementById('optWhiteBg').checked;
+        const removePen = document.getElementById('optRemovePen').checked;
+
+        updateProgress(0, 'Starting chunked upload...', `0 / ${totalChunks} chunks`);
+
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * CHUNK_SIZE;
+            const end = Math.min(selectedFile.size, start + CHUNK_SIZE);
+            const chunk = selectedFile.slice(start, end);
+
+            const formData = new FormData();
+            formData.append('chunk', chunk);
+            formData.append('task_id', currentTaskId);
+            formData.append('chunk_index', i);
+            formData.append('total_chunks', totalChunks);
+            formData.append('filename', selectedFile.name);
+            formData.append('white_bg', whiteBg);
+            formData.append('remove_pen', removePen);
+            formData.append('high_contrast', true);
+
+            try {
+                const response = await fetch('/api/upload_chunk', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Upload chunk ${i+1} failed`);
+                }
+
+                const uploadedMB = (end / (1024 * 1024)).toFixed(1);
+                const totalMB = (selectedFile.size / (1024 * 1024)).toFixed(1);
+                const uploadPct = Math.round(((i + 1) / totalChunks) * 100);
+                const overallPct = Math.round((uploadPct / 100) * 20); // Map upload to 0-20%
+
                 updateProgress(
                     overallPct, 
                     `Uploading: ${uploadedMB} MB / ${totalMB} MB (${uploadPct}%)`,
-                    `Upload Progress: ${uploadPct}%`
+                    `Chunk ${i+1}/${totalChunks}`
                 );
-            }
-        };
 
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    currentTaskId = data.task_id;
-                    updateProgress(20, 'Upload finished. Processing PDF pages...', 'Starting conversion...');
-                    pollInterval = setInterval(() => checkTaskProgress(currentTaskId), 500);
-                } catch (e) {
-                    alert('Error parsing upload response.');
-                    resetUI();
-                }
-            } else {
-                alert('Upload error: HTTP ' + xhr.status);
+            } catch (err) {
+                alert('Upload network error: ' + err.message);
                 resetUI();
+                return;
             }
-        };
+        }
 
-        xhr.onerror = () => {
-            alert('Upload network error. Please try again.');
-            resetUI();
-        };
-
-        xhr.open('POST', '/api/upload', true);
-        xhr.send(formData);
+        // Upload complete -> start polling conversion progress
+        updateProgress(20, 'Upload finished. Processing PDF pages...', 'Starting conversion...');
+        pollInterval = setInterval(() => checkTaskProgress(currentTaskId), 400);
     });
 
     async function checkTaskProgress(taskId) {
@@ -141,13 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) return;
 
             const data = await res.json();
-            // Map server progress 0-100% to 20%-100% overall progress
+            // Map conversion 0-100% to 20%-100% overall progress
             const overallPct = 20 + Math.round((data.percent / 100) * 80);
             updateProgress(overallPct, data.message, data.total_pages ? `Total Pages: ${data.total_pages}` : 'Processing pages...');
 
             if (data.status === 'completed' || data.percent >= 100) {
                 clearInterval(pollInterval);
-                setTimeout(() => showDownloadView(taskId, data.filename), 500);
+                setTimeout(() => showDownloadView(taskId, data.filename), 400);
             } else if (data.status === 'failed') {
                 clearInterval(pollInterval);
                 alert('Conversion failed: ' + data.message);

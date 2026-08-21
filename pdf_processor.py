@@ -6,10 +6,9 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 def convert_single_image(img_bgr, white_bg=True, remove_pen=False, high_contrast=True):
-    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-    
     # 1. Pen Mark Removal (if enabled)
     if remove_pen:
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
         b, g, r = cv2.split(img_bgr.astype(np.int16))
         pen_mask = (b - r > 35) & (b - g > 25) & (b > 85) & (hsv[:,:,0] >= 105) & (hsv[:,:,0] <= 138)
         mask_u8 = (pen_mask * 255).astype(np.uint8)
@@ -17,37 +16,30 @@ def convert_single_image(img_bgr, white_bg=True, remove_pen=False, high_contrast
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
             dilated_mask = cv2.dilate(mask_u8, kernel, iterations=1)
             img_bgr = cv2.inpaint(img_bgr, dilated_mask, inpaintRadius=4, flags=cv2.INPAINT_TELEA)
-            hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
 
-    # 2. White Background Conversion (if enabled)
+    # 2. White Background Conversion (SIMD accelerated)
     if white_bg:
         border_pixels = np.concatenate([
-            img_bgr[:25, :, :].reshape(-1, 3),
-            img_bgr[-25:, :, :].reshape(-1, 3),
-            img_bgr[:, :25, :].reshape(-1, 3),
-            img_bgr[:, -25:, :].reshape(-1, 3)
+            img_bgr[:20, :, :].reshape(-1, 3),
+            img_bgr[-20:, :, :].reshape(-1, 3),
+            img_bgr[:, :20, :].reshape(-1, 3),
+            img_bgr[:, -20:, :].reshape(-1, 3)
         ], axis=0)
         
-        bg_median = np.median(border_pixels, axis=0)  # [B, G, R]
-        bg_v = cv2.cvtColor(np.uint8([[bg_median]]), cv2.COLOR_BGR2HSV)[0, 0, 2]
+        bg_bgr = np.median(border_pixels, axis=0).astype(np.uint8)
+        bg_v = cv2.cvtColor(np.uint8([[bg_bgr]]), cv2.COLOR_BGR2HSV)[0, 0, 2]
         
         if bg_v <= 200:
+            diff = cv2.absdiff(img_bgr, bg_bgr)
+            diff_sum = diff[:,:,0].astype(np.uint16) + diff[:,:,1].astype(np.uint16) + diff[:,:,2].astype(np.uint16)
+            bg_mask = (diff_sum < 90)
+            
             inv_bgr = 255 - img_bgr
-            
-            diff = img_bgr.astype(np.float32) - bg_median.astype(np.float32)
-            dist = np.sqrt(np.sum(diff**2, axis=2))
-            
-            bg_threshold = 60.0
-            bg_mask = dist < bg_threshold
-            
-            dark_bg = (hsv[:,:,2] < 160) & (dist < 80.0)
-            bg_mask = bg_mask | dark_bg
-            
             inv_bgr[bg_mask] = [255, 255, 255]
             img_bgr = inv_bgr
 
-    # Fast JPEG encoding quality 75
-    _, buf = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 75])
+    # Fast JPEG compression
+    _, buf = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])
     return buf.tobytes()
 
 def process_page_task(args):
@@ -67,7 +59,7 @@ def process_pdf(input_path, output_path, white_bg=True, remove_pen=False, high_c
     total_pages = len(doc)
     
     if progress_callback:
-        progress_callback(2, total_pages, f"Opened document with {total_pages} pages")
+        progress_callback(2, total_pages, f"Opened PDF ({total_pages} pages)")
         
     page_data = []
     page_rects = []
@@ -94,7 +86,7 @@ def process_pdf(input_path, output_path, white_bg=True, remove_pen=False, high_c
                 pix = page.get_pixmap(dpi=100)
                 img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
                 img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-                _, buf = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                _, buf = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 page_data.append((i, buf.tobytes(), white_bg, remove_pen, high_contrast))
             except Exception as e:
                 print(f"Error on page {i}: {e}")
@@ -103,7 +95,7 @@ def process_pdf(input_path, output_path, white_bg=True, remove_pen=False, high_c
             pct = 2 + int((i / total_pages) * 28)
             progress_callback(pct, total_pages, f"Loaded page {i+1}/{total_pages}")
             
-    # Parallel processing
+    # Max multi-core parallel processing
     max_workers = min(16, (os.cpu_count() or 4) * 2)
     processed_dict = {}
     
@@ -118,7 +110,7 @@ def process_pdf(input_path, output_path, white_bg=True, remove_pen=False, high_c
                 progress_callback(pct, total_pages, f"Converting page {count}/{total_pages}")
                 
     if progress_callback:
-        progress_callback(92, total_pages, "Assembling output PDF file...")
+        progress_callback(92, total_pages, "Assembling output PDF...")
         
     out_doc = pymupdf.open()
     for i in range(total_pages):
