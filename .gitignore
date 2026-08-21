@@ -1,0 +1,9 @@
+uploads/
+outputs/
+*.pdf
+tasks_db.json
+tunnel_url*.txt
+__pycache__/
+*.pyc
+.env
+.venv/

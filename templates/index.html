@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Background Converter Pro (Up to 2GB)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .light-glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(229, 231, 235, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Navbar -->
+    <header class="w-full border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-file-pdf text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-white leading-tight">PDF White BG Pro</h1>
+                    <p class="text-xs text-slate-400">Convert Any PDF to White Background • Up to 2GB</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Fast Multi-Threaded Engine
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-10 flex flex-col justify-center">
+
+        <!-- Hero Title -->
+        <div class="text-center mb-8">
+            <h2 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight mb-3">
+                Change PDF Background to <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">Pure White</span>
+            </h2>
+            <p class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
+                Upload your lecture slides, digital blackboard notes, or scanned PDFs (up to 2GB). Automatically converts dark backgrounds into crisp white paper with high-contrast text.
+            </p>
+        </div>
+
+        <!-- Converter Card -->
+        <div class="glass rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+
+            <!-- Step 1: Upload Drop Area -->
+            <div id="uploadContainer">
+                <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/80 rounded-2xl p-8 md:p-12 text-center cursor-pointer transition-all duration-300 bg-slate-900/40 hover:bg-brand-500/5 group">
+                    <input type="file" id="fileInput" accept=".pdf" class="hidden" />
+                    
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800 group-hover:bg-brand-600/20 text-slate-400 group-hover:text-brand-400 flex items-center justify-center transition-all duration-300 shadow-inner">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl"></i>
+                    </div>
+
+                    <h3 class="text-lg font-semibold text-white mb-1">
+                        Drag & Drop your PDF file here
+                    </h3>
+                    <p class="text-slate-400 text-sm mb-4">or <span class="text-brand-400 font-medium hover:underline">browse from computer</span></p>
+
+                    <div class="inline-flex items-center gap-4 text-xs text-slate-500 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+                        <span><i class="fa-solid fa-shield-halved text-brand-400 mr-1"></i> Supports up to 2GB</span>
+                        <span>•</span>
+                        <span><i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Super Fast Speed</span>
+                    </div>
+                </div>
+
+                <!-- Selected File Display -->
+                <div id="fileDetails" class="hidden mt-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-file-pdf text-2xl"></i>
+                        </div>
+                        <div class="truncate">
+                            <p id="fileName" class="font-medium text-white text-sm truncate">document.pdf</p>
+                            <p id="fileSize" class="text-xs text-slate-400">0.0 MB</p>
+                        </div>
+                    </div>
+                    <button id="removeFileBtn" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Processing Options -->
+                <div class="mt-6 border-t border-slate-800/80 pt-6">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Conversion Options</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Option 1: White BG -->
+                        <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                            <input type="checkbox" id="optWhiteBg" checked class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700 focus:ring-brand-500 focus:ring-offset-slate-900" />
+                            <div>
+                                <span class="text-sm font-medium text-white block">White Background</span>
+                                <span class="text-xs text-slate-400 block">Convert dark board/black ground to white paper</span>
+                            </div>
+                        </label>
+
+                        <!-- Option 2: Remove Pen -->
+                        <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                            <input type="checkbox" id="optRemovePen" class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700 focus:ring-brand-500 focus:ring-offset-slate-900" />
+                            <div>
+                                <span class="text-sm font-medium text-white block">Erase Pen Marks</span>
+                                <span class="text-xs text-slate-400 block">Remove handwritten blue pen lines & circles</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Convert Button -->
+                <div class="mt-6">
+                    <button id="startConvertBtn" disabled class="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-200 flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Convert PDF to White Background
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Live Progress Area -->
+            <div id="progressContainer" class="hidden py-8">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand-600/20 text-brand-400 flex items-center justify-center animate-spin">
+                        <i class="fa-solid fa-circle-notch text-3xl"></i>
+                    </div>
+                    <h3 id="progressTitle" class="text-xl font-bold text-white mb-1">Processing your PDF...</h3>
+                    <p id="progressMessage" class="text-sm text-slate-400">Initializing conversion pipeline</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-900 rounded-full h-4 overflow-hidden border border-slate-800 p-0.5 mb-3">
+                    <div id="progressBar" class="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-300 w-0"></div>
+                </div>
+
+                <div class="flex justify-between items-center text-xs text-slate-400 px-1">
+                    <span id="pageStats">0 / 0 pages</span>
+                    <span id="percentText" class="font-bold text-brand-400">0%</span>
+                </div>
+            </div>
+
+            <!-- Step 3: Completion & Download Card -->
+            <div id="downloadContainer" class="hidden py-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-circle-check text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Conversion Complete!</h3>
+                <p class="text-slate-400 text-sm mb-6">Your PDF background has been converted to pure white successfully.</p>
+
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a id="downloadBtn" href="#" download class="py-4 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-download"></i> Download Converted PDF
+                    </a>
+                    <button id="convertAnotherBtn" class="py-4 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition">
+                        Convert Another File
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+        <p>© 2026 PDF Background Converter Pro • Multi-Threaded Engine</p>
+    </footer>
+
+    <!-- App JS -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
