@@ -209,7 +209,7 @@
     <!-- Hidden Canvas for Image Processing -->
     <canvas id="offscreenCanvas" class="hidden"></canvas>
 
-    <!-- Client-Side App Logic with Dilated Neighbor Inpainting Engine -->
+    <!-- Client-Side App Logic with Text-Preserving Neighbor Inpainting Engine -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const dropZone = document.getElementById('dropZone');
@@ -332,7 +332,6 @@
                                     const g = data[idx+1];
                                     const b = data[idx+2];
 
-                                    // Precision Blue Pen Ink threshold
                                     if ((b > r + 20) && (b > g - 15) && (b > 65) && (r < 220 || g < 220)) {
                                         isPen[y * width + x] = 1;
                                     }
@@ -340,7 +339,7 @@
                             }
                         }
 
-                        // Step 2: 5x5 Morphological Dilation in JS to capture all anti-aliased pen edges
+                        // Step 2: 5x5 Morphological Dilation
                         const isPenDilated = new Uint8Array(totalPixels);
                         if (removePen) {
                             for (let y = 2; y < height - 2; y++) {
@@ -373,41 +372,51 @@
 
                         const bgLuminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB);
 
-                        // Step 3: Fast Neighbor Inpainting for Erased Pen Marks & Background Conversion
+                        // Step 3: Text-Preserving Pen Inpainting & Background Conversion
                         for (let y = 0; y < height; y++) {
                             for (let x = 0; x < width; x++) {
                                 const pos = y * width + x;
                                 const idx = pos * 4;
 
-                                // Erase Dilated Pen Marks to Local Neighbor Background Color
                                 if (removePen && isPenDilated[pos]) {
-                                    // Neighbor Inpainting (average non-pen neighbor pixels in 5x5 box)
-                                    let nSumR = 0, nSumG = 0, nSumB = 0, nCount = 0;
-                                    for (let dy = -2; dy <= 2; dy++) {
-                                        for (let dx = -2; dx <= 2; dx++) {
-                                            const ny = y + dy;
-                                            const nx = x + dx;
-                                            if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-                                                const nPos = ny * width + nx;
-                                                if (!isPenDilated[nPos]) {
-                                                    const nIdx = nPos * 4;
-                                                    nSumR += data[nIdx];
-                                                    nSumG += data[nIdx+1];
-                                                    nSumB += data[nIdx+2];
-                                                    nCount++;
+                                    const r = data[idx];
+                                    const g = data[idx+1];
+                                    const b = data[idx+2];
+                                    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                                    // Preserve dark text strokes under blue pen ink
+                                    if (lum < 75) {
+                                        data[idx] = 30;
+                                        data[idx+1] = 30;
+                                        data[idx+2] = 30;
+                                    } else {
+                                        let nSumR = 0, nSumG = 0, nSumB = 0, nCount = 0;
+                                        for (let dy = -2; dy <= 2; dy++) {
+                                            for (let dx = -2; dx <= 2; dx++) {
+                                                const ny = y + dy;
+                                                const nx = x + dx;
+                                                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                                                    const nPos = ny * width + nx;
+                                                    if (!isPenDilated[nPos]) {
+                                                        const nIdx = nPos * 4;
+                                                        nSumR += data[nIdx];
+                                                        nSumG += data[nIdx+1];
+                                                        nSumB += data[nIdx+2];
+                                                        nCount++;
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
 
-                                    if (nCount > 0) {
-                                        data[idx] = Math.round(nSumR / nCount);
-                                        data[idx+1] = Math.round(nSumG / nCount);
-                                        data[idx+2] = Math.round(nSumB / nCount);
-                                    } else {
-                                        data[idx] = 255;
-                                        data[idx+1] = 255;
-                                        data[idx+2] = 255;
+                                        if (nCount > 0) {
+                                            data[idx] = Math.round(nSumR / nCount);
+                                            data[idx+1] = Math.round(nSumG / nCount);
+                                            data[idx+2] = Math.round(nSumB / nCount);
+                                        } else {
+                                            data[idx] = 245;
+                                            data[idx+1] = 245;
+                                            data[idx+2] = 245;
+                                        }
                                     }
                                     continue;
                                 }
