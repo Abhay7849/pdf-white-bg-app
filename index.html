@@ -141,10 +141,10 @@
                             </div>
                         </label>
                         <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
-                            <input type="checkbox" id="optRemovePen" class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700" />
+                            <input type="checkbox" id="optRemovePen" checked class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700" />
                             <div>
                                 <span class="text-sm font-medium text-white block">Erase Blue Pen Marks</span>
-                                <span class="text-xs text-slate-400 block">Remove handwritten blue lines & circles</span>
+                                <span class="text-xs text-slate-400 block">Remove handwritten blue lines, circles & ticks</span>
                             </div>
                         </label>
                     </div>
@@ -209,7 +209,7 @@
     <!-- Hidden Canvas for Image Processing -->
     <canvas id="offscreenCanvas" class="hidden"></canvas>
 
-    <!-- Client-Side App Logic -->
+    <!-- Client-Side App Logic with Dilated Pen Mark Eraser Engine -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const dropZone = document.getElementById('dropZone');
@@ -309,6 +309,8 @@
 
                         canvas.width = viewport.width;
                         canvas.height = viewport.height;
+                        const width = canvas.width;
+                        const height = canvas.height;
 
                         const renderContext = {
                             canvasContext: ctx,
@@ -316,10 +318,45 @@
                         };
                         await page.render(renderContext).promise;
 
-                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const imgData = ctx.getImageData(0, 0, width, height);
                         const data = imgData.data;
-                        const len = data.length;
+                        const totalPixels = width * height;
 
+                        // Step 1: Detect Blue Pen Ink Pixels
+                        const isPen = new Uint8Array(totalPixels);
+                        if (removePen) {
+                            for (let y = 0; y < height; y++) {
+                                for (let x = 0; x < width; x++) {
+                                    const idx = (y * width + x) * 4;
+                                    const r = data[idx];
+                                    const g = data[idx+1];
+                                    const b = data[idx+2];
+
+                                    // Flexible blue pen detection
+                                    if ((b > r + 20) && (b > g - 15) && (b > 65) && (r < 220 || g < 220)) {
+                                        isPen[y * width + x] = 1;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Step 2: 3x3 Morphological Dilation in JS to capture anti-aliased pen edges
+                        const isPenDilated = new Uint8Array(totalPixels);
+                        if (removePen) {
+                            for (let y = 1; y < height - 1; y++) {
+                                for (let x = 1; x < width - 1; x++) {
+                                    const pos = y * width + x;
+                                    if (isPen[pos] || isPen[pos - 1] || isPen[pos + 1] ||
+                                        isPen[pos - width] || isPen[pos + width] ||
+                                        isPen[pos - width - 1] || isPen[pos - width + 1] ||
+                                        isPen[pos + width - 1] || isPen[pos + width + 1]) {
+                                        isPenDilated[pos] = 1;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Border sample to determine background color
                         let bgR = 30, bgG = 39, bgB = 15;
                         const borderSampleCount = 500;
                         let sumR = 0, sumG = 0, sumB = 0;
@@ -335,28 +372,35 @@
 
                         const bgLuminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB);
 
-                        if (whiteBg && bgLuminance <= 180) {
-                            for (let i = 0; i < len; i += 4) {
-                                const r = data[i];
-                                const g = data[i+1];
-                                const b = data[i+2];
+                        // Step 3: Apply Pen Erasing and Background Conversion
+                        for (let y = 0; y < height; y++) {
+                            for (let x = 0; x < width; x++) {
+                                const pos = y * width + x;
+                                const idx = pos * 4;
 
-                                if (removePen && (b - r > 35) && (b - g > 20) && b > 85) {
-                                    data[i] = 255;
-                                    data[i+1] = 255;
-                                    data[i+2] = 255;
+                                // Erase Dilated Pen Marks to Pure White
+                                if (removePen && isPenDilated[pos]) {
+                                    data[idx] = 255;
+                                    data[idx+1] = 255;
+                                    data[idx+2] = 255;
                                     continue;
                                 }
 
-                                const dist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
-                                if (dist < 90) {
-                                    data[i] = 255;
-                                    data[i+1] = 255;
-                                    data[i+2] = 255;
-                                } else {
-                                    data[i] = 255 - r;
-                                    data[i+1] = 255 - g;
-                                    data[i+2] = 255 - b;
+                                if (whiteBg && bgLuminance <= 180) {
+                                    const r = data[idx];
+                                    const g = data[idx+1];
+                                    const b = data[idx+2];
+
+                                    const dist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                                    if (dist < 90) {
+                                        data[idx] = 255;
+                                        data[idx+1] = 255;
+                                        data[idx+2] = 255;
+                                    } else {
+                                        data[idx] = 255 - r;
+                                        data[idx+1] = 255 - g;
+                                        data[idx+2] = 255 - b;
+                                    }
                                 }
                             }
                         }
@@ -364,7 +408,7 @@
                         ctx.putImageData(imgData, 0, 0);
 
                         const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                        const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
+                        const jpegBytes = await fetch(jpegDataUrl).then(res => res.read ? res.arrayBuffer() : res.arrayBuffer());
                         const embeddedJpg = await outPdf.embedJpg(jpegBytes);
 
                         const newPage = outPdf.addPage([viewport.width, viewport.height]);
