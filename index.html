@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Background Converter Pro (100% Free & Unlimited) • By Abhay Singh</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF-Lib CDN -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .red-brand {
+            color: #ef4444;
+            text-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="w-full border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-file-pdf text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-white leading-tight">PDF White BG Pro (Static)</h1>
+                    <p class="text-xs text-slate-400">100% Browser Client-Side • No Uploads • 100% Free Forever</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/30">
+                    <i class="fa-solid fa-code text-xs"></i> Developed by <span class="uppercase tracking-wider font-extrabold text-red-500">ABHAY SINGH</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-10 flex flex-col justify-center">
+
+        <div class="text-center mb-8">
+            <h2 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight mb-3">
+                Convert PDF Background to <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">Pure White</span>
+            </h2>
+            <p class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
+                100% Free Client-Side Processing. Files stay securely in your browser—no server uploads required!
+            </p>
+        </div>
+
+        <!-- Converter Box -->
+        <div class="glass rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+
+            <!-- Step 1: File Upload -->
+            <div id="uploadStep">
+                <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/80 rounded-2xl p-8 md:p-12 text-center cursor-pointer transition-all duration-300 bg-slate-900/40 hover:bg-brand-500/5 group">
+                    <input type="file" id="fileInput" accept=".pdf" class="hidden" />
+                    
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800 group-hover:bg-brand-600/20 text-slate-400 group-hover:text-brand-400 flex items-center justify-center transition-all duration-300 shadow-inner">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl"></i>
+                    </div>
+
+                    <h3 class="text-lg font-semibold text-white mb-1">
+                        Select or Drag & Drop your PDF file
+                    </h3>
+                    <p class="text-slate-400 text-sm mb-4">or <span class="text-brand-400 font-medium hover:underline">browse from device</span></p>
+
+                    <div class="inline-flex items-center gap-4 text-xs text-slate-500 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+                        <span><i class="fa-solid fa-lock text-emerald-400 mr-1"></i> 100% Private (No Upload)</span>
+                        <span>•</span>
+                        <span><i class="fa-solid fa-infinity text-amber-400 mr-1"></i> Unlimited File Size</span>
+                    </div>
+                </div>
+
+                <!-- Selected File Details -->
+                <div id="fileDetails" class="hidden mt-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-file-pdf text-2xl"></i>
+                        </div>
+                        <div class="truncate">
+                            <p id="fileName" class="font-medium text-white text-sm truncate">document.pdf</p>
+                            <p id="fileSize" class="text-xs text-slate-400">0.0 MB</p>
+                        </div>
+                    </div>
+                    <button id="removeFileBtn" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Options -->
+                <div class="mt-6 border-t border-slate-800/80 pt-6">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Conversion Options</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                            <input type="checkbox" id="optWhiteBg" checked class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700" />
+                            <div>
+                                <span class="text-sm font-medium text-white block">White Background</span>
+                                <span class="text-xs text-slate-400 block">Convert dark ground to pure white paper</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                            <input type="checkbox" id="optRemovePen" class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700" />
+                            <div>
+                                <span class="text-sm font-medium text-white block">Erase Blue Pen Marks</span>
+                                <span class="text-xs text-slate-400 block">Remove handwritten blue lines & circles</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Convert Button -->
+                <div class="mt-6">
+                    <button id="startConvertBtn" disabled class="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Convert PDF to White Background
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Processing Progress -->
+            <div id="progressStep" class="hidden py-8 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand-600/20 text-brand-400 flex items-center justify-center animate-spin">
+                    <i class="fa-solid fa-circle-notch text-3xl"></i>
+                </div>
+                <h3 id="progressTitle" class="text-xl font-bold text-white mb-1">Converting Pages in Browser...</h3>
+                <p id="progressMessage" class="text-sm font-medium text-brand-400">Loading PDF document...</p>
+
+                <div class="w-full bg-slate-900 rounded-full h-4 overflow-hidden border border-slate-800 p-0.5 my-4">
+                    <div id="progressBar" class="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-150 w-0"></div>
+                </div>
+
+                <div class="flex justify-between items-center text-xs text-slate-400 px-1">
+                    <span id="pageStats">Processing...</span>
+                    <span id="percentText" class="font-bold text-brand-400">0%</span>
+                </div>
+            </div>
+
+            <!-- Step 3: Complete Download Card -->
+            <div id="downloadStep" class="hidden py-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-circle-check text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Conversion Complete!</h3>
+                <p class="text-slate-400 text-sm mb-6">Your PDF background has been converted to pure white paper.</p>
+
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button id="downloadBtn" class="py-4 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-download"></i> Download Converted PDF
+                    </button>
+                    <button id="convertAnotherBtn" class="py-4 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition">
+                        Convert Another File
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 py-6 text-center text-sm">
+        <p class="text-slate-400 font-medium">
+            Designed & Developed by <span class="text-red-600 font-extrabold uppercase text-base tracking-wider red-brand">ABHAY SINGH</span>
+        </p>
+        <p class="text-xs text-slate-600 mt-1">100% Free Client-Side Static PDF Engine • No Server • 24/7 Unlimited Uptime</p>
+    </footer>
+
+    <!-- Hidden Canvas for Image Processing -->
+    <canvas id="offscreenCanvas" class="hidden"></canvas>
+
+    <!-- Client-Side App Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileDetails = document.getElementById('fileDetails');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const removeFileBtn = document.getElementById('removeFileBtn');
+            const startConvertBtn = document.getElementById('startConvertBtn');
+            
+            const uploadStep = document.getElementById('uploadStep');
+            const progressStep = document.getElementById('progressStep');
+            const downloadStep = document.getElementById('downloadStep');
+            
+            const progressBar = document.getElementById('progressBar');
+            const percentText = document.getElementById('percentText');
+            const pageStats = document.getElementById('pageStats');
+            const progressMessage = document.getElementById('progressMessage');
+            
+            const downloadBtn = document.getElementById('downloadBtn');
+            const convertAnotherBtn = document.getElementById('convertAnotherBtn');
+            const canvas = document.getElementById('offscreenCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let selectedFile = null;
+            let convertedPdfBytes = null;
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            ['dragenter', 'dragover'].forEach(eName => {
+                dropZone.addEventListener(eName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('border-brand-500', 'bg-brand-500/10');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eName => {
+                dropZone.addEventListener(eName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('border-brand-500', 'bg-brand-500/10');
+                });
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].name.toLowerCase().endsWith('.pdf')) {
+                    handleFileSelect(files[0]);
+                } else {
+                    alert('Please select a valid PDF file.');
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) handleFileSelect(fileInput.files[0]);
+            });
+
+            function handleFileSelect(file) {
+                selectedFile = file;
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                fileDetails.classList.remove('hidden');
+                startConvertBtn.disabled = false;
+            }
+
+            removeFileBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedFile = null;
+                fileInput.value = '';
+                fileDetails.classList.add('hidden');
+                startConvertBtn.disabled = true;
+            });
+
+            startConvertBtn.addEventListener('click', async () => {
+                if (!selectedFile) return;
+
+                uploadStep.classList.add('hidden');
+                progressStep.classList.remove('hidden');
+
+                const whiteBg = document.getElementById('optWhiteBg').checked;
+                const removePen = document.getElementById('optRemovePen').checked;
+
+                try {
+                    const arrayBuffer = await selectedFile.arrayBuffer();
+                    const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const numPages = pdfDoc.numPages;
+
+                    const outPdf = await PDFLib.PDFDocument.create();
+
+                    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                        const pct = Math.round((pageNum / numPages) * 100);
+                        updateProgress(pct, `Converting Page ${pageNum} of ${numPages}...`, `${pageNum} / ${numPages} Pages`);
+
+                        const page = await pdfDoc.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 1.5 });
+
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+
+                        const renderContext = {
+                            canvasContext: ctx,
+                            viewport: viewport
+                        };
+                        await page.render(renderContext).promise;
+
+                        // Process Image Data in Browser Canvas
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imgData.data;
+                        const len = data.length;
+
+                        // Border sample to get background color
+                        let bgR = 30, bgG = 39, bgB = 15;
+                        const borderSampleCount = 500;
+                        let sumR = 0, sumG = 0, sumB = 0;
+                        for (let i = 0; i < borderSampleCount; i++) {
+                            const idx = (i * 4);
+                            sumR += data[idx];
+                            sumG += data[idx+1];
+                            sumB += data[idx+2];
+                        }
+                        bgR = sumR / borderSampleCount;
+                        bgG = sumG / borderSampleCount;
+                        bgB = sumB / borderSampleCount;
+
+                        const bgLuminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB);
+
+                        if (whiteBg && bgLuminance <= 180) {
+                            for (let i = 0; i < len; i += 4) {
+                                const r = data[i];
+                                const g = data[i+1];
+                                const b = data[i+2];
+
+                                // Blue Pen Removal
+                                if (removePen && (b - r > 35) && (b - g > 20) && b > 85) {
+                                    data[i] = 255;
+                                    data[i+1] = 255;
+                                    data[i+2] = 255;
+                                    continue;
+                                }
+
+                                // Dark background to pure white conversion
+                                const dist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                                if (dist < 90) {
+                                    data[i] = 255;
+                                    data[i+1] = 255;
+                                    data[i+2] = 255;
+                                } else {
+                                    data[i] = 255 - r;
+                                    data[i+1] = 255 - g;
+                                    data[i+2] = 255 - b;
+                                }
+                            }
+                        }
+
+                        ctx.putImageData(imgData, 0, 0);
+
+                        // Convert canvas to JPEG blob
+                        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                        const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
+                        const embeddedJpg = await outPdf.embedJpg(jpegBytes);
+
+                        const newPage = outPdf.addPage([viewport.width, viewport.height]);
+                        newPage.drawImage(embeddedJpg, {
+                            x: 0,
+                            y: 0,
+                            width: viewport.width,
+                            height: viewport.height
+                        });
+                    }
+
+                    updateProgress(100, 'Saving PDF File...', 'Complete!');
+                    convertedPdfBytes = await outPdf.save();
+
+                    setTimeout(() => {
+                        progressStep.classList.add('hidden');
+                        downloadStep.classList.remove('hidden');
+                    }, 400);
+
+                } catch (err) {
+                    alert('Conversion error: ' + err.message);
+                    resetUI();
+                }
+            });
+
+            function updateProgress(percent, message, pageText) {
+                progressBar.style.width = `${percent}%`;
+                percentText.textContent = `${percent}%`;
+                progressMessage.textContent = message;
+                pageStats.textContent = pageText;
+            }
+
+            downloadBtn.addEventListener('click', () => {
+                if (!convertedPdfBytes) return;
+                const blob = new Blob([convertedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `white_bg_${selectedFile ? selectedFile.name : 'converted.pdf'}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            convertAnotherBtn.addEventListener('click', () => resetUI());
+
+            function resetUI() {
+                selectedFile = null;
+                convertedPdfBytes = null;
+                fileInput.value = '';
+                fileDetails.classList.add('hidden');
+                startConvertBtn.disabled = true;
+                progressStep.classList.add('hidden');
+                downloadStep.classList.add('hidden');
+                uploadStep.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
