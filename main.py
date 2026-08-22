@@ -92,7 +92,6 @@ def run_conversion_task(task_id: str, input_path: str, output_path: str, white_b
             except:
                 pass
 
-# Chunked upload endpoint to handle 2GB files without network timeout errors
 @app.post("/api/upload_chunk")
 async def upload_chunk(
     chunk: UploadFile = File(...),
@@ -108,7 +107,6 @@ async def upload_chunk(
     input_path = os.path.join(UPLOAD_DIR, f"{task_id}.pdf")
     output_path = os.path.join(OUTPUT_DIR, f"{task_id}_{clean_filename}")
 
-    # Append chunk bytes to destination file
     with open(input_path, "ab") as buffer:
         content = await chunk.read()
         buffer.write(content)
@@ -123,7 +121,6 @@ async def upload_chunk(
     }
     save_db(tasks_progress)
 
-    # When all chunks arrive, start conversion thread
     if chunk_index == total_chunks - 1:
         tasks_progress[task_id]["message"] = "Upload complete. Starting background conversion..."
         save_db(tasks_progress)
@@ -180,4 +177,6 @@ async def download_file(task_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    # Dynamic PORT binding for Cloud Hosts (Render, Railway, HuggingFace, Fly.io)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
