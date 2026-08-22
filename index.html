@@ -78,8 +78,7 @@
             <div class="inline-flex flex-wrap items-center justify-center gap-3 md:gap-6 bg-slate-900/90 border border-slate-800 rounded-2xl px-6 py-3 shadow-xl backdrop-blur-md">
                 <div class="flex items-center gap-2 text-sm md:text-base font-semibold text-slate-200">
                     <i class="fa-solid fa-heart text-amber-400"></i> Made for 
-                    <span class="text-amber-400 font-extrabold uppercase tracking-wide">SAHIL</span> & 
-                    <span class="text-amber-400 font-extrabold uppercase tracking-wide">NITESH</span>
+                    <span class="text-amber-400 font-extrabold uppercase tracking-wide">SAHIL SHARMA</span>
                 </div>
                 <span class="hidden md:inline text-slate-700">•</span>
                 <div class="flex items-center gap-2 text-sm md:text-base font-semibold text-slate-200">
@@ -129,31 +128,10 @@
                     </button>
                 </div>
 
-                <!-- Options -->
-                <div class="mt-6 border-t border-slate-800/80 pt-6">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Conversion Options</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
-                            <input type="checkbox" id="optWhiteBg" checked class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700" />
-                            <div>
-                                <span class="text-sm font-medium text-white block">White Background</span>
-                                <span class="text-xs text-slate-400 block">Convert dark ground to pure white paper</span>
-                            </div>
-                        </label>
-                        <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
-                            <input type="checkbox" id="optRemovePen" checked class="w-4 h-4 rounded text-brand-600 bg-slate-800 border-slate-700" />
-                            <div>
-                                <span class="text-sm font-medium text-white block">Erase Blue Pen Marks</span>
-                                <span class="text-xs text-slate-400 block">Remove handwritten blue lines, circles & ticks</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
                 <!-- Convert Button -->
                 <div class="mt-6">
                     <button id="startConvertBtn" disabled class="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-base">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> Convert PDF to White Background
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Convert PDF to Pure White Background
                     </button>
                 </div>
             </div>
@@ -201,7 +179,7 @@
     <!-- Footer -->
     <footer class="border-t border-slate-900 py-6 text-center text-sm">
         <p class="text-slate-400 font-medium">
-            Made for <span class="text-amber-400 font-bold uppercase">SAHIL & NITESH</span> • Developed by <span class="text-red-600 font-extrabold uppercase text-base tracking-wider red-brand">ABHAY SINGH</span>
+            Made for <span class="text-amber-400 font-bold uppercase">SAHIL SHARMA</span> • Developed by <span class="text-red-600 font-extrabold uppercase text-base tracking-wider red-brand">ABHAY SINGH</span>
         </p>
         <p class="text-xs text-slate-600 mt-1">100% Free Client-Side Static PDF Engine • 24/7 Live</p>
     </footer>
@@ -209,7 +187,7 @@
     <!-- Hidden Canvas for Image Processing -->
     <canvas id="offscreenCanvas" class="hidden"></canvas>
 
-    <!-- Client-Side App Logic with Text-Preserving Neighbor Inpainting Engine -->
+    <!-- Client-Side App Logic (Pure White Background Converter) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const dropZone = document.getElementById('dropZone');
@@ -290,9 +268,6 @@
                 uploadStep.classList.add('hidden');
                 progressStep.classList.remove('hidden');
 
-                const whiteBg = document.getElementById('optWhiteBg').checked;
-                const removePen = document.getElementById('optRemovePen').checked;
-
                 try {
                     const arrayBuffer = await selectedFile.arrayBuffer();
                     const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -320,41 +295,6 @@
 
                         const imgData = ctx.getImageData(0, 0, width, height);
                         const data = imgData.data;
-                        const totalPixels = width * height;
-
-                        // Step 1: Detect Blue Pen Ink Pixels
-                        const isPen = new Uint8Array(totalPixels);
-                        if (removePen) {
-                            for (let y = 0; y < height; y++) {
-                                for (let x = 0; x < width; x++) {
-                                    const idx = (y * width + x) * 4;
-                                    const r = data[idx];
-                                    const g = data[idx+1];
-                                    const b = data[idx+2];
-
-                                    if ((b > r + 20) && (b > g - 15) && (b > 65) && (r < 220 || g < 220)) {
-                                        isPen[y * width + x] = 1;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Step 2: 5x5 Morphological Dilation
-                        const isPenDilated = new Uint8Array(totalPixels);
-                        if (removePen) {
-                            for (let y = 2; y < height - 2; y++) {
-                                for (let x = 2; x < width - 2; x++) {
-                                    const pos = y * width + x;
-                                    if (isPen[pos]) {
-                                        for (let dy = -2; dy <= 2; dy++) {
-                                            for (let dx = -2; dx <= 2; dx++) {
-                                                isPenDilated[(y + dy) * width + (x + dx)] = 1;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
 
                         // Border sample to determine background color
                         let bgR = 30, bgG = 39, bgB = 15;
@@ -372,70 +312,23 @@
 
                         const bgLuminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB);
 
-                        // Step 3: Text-Preserving Pen Inpainting & Background Conversion
-                        for (let y = 0; y < height; y++) {
-                            for (let x = 0; x < width; x++) {
-                                const pos = y * width + x;
-                                const idx = pos * 4;
+                        // Pure White Background Conversion
+                        if (bgLuminance <= 180) {
+                            const len = data.length;
+                            for (let i = 0; i < len; i += 4) {
+                                const r = data[i];
+                                const g = data[i+1];
+                                const b = data[i+2];
 
-                                if (removePen && isPenDilated[pos]) {
-                                    const r = data[idx];
-                                    const g = data[idx+1];
-                                    const b = data[idx+2];
-                                    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-
-                                    // Preserve dark text strokes under blue pen ink
-                                    if (lum < 75) {
-                                        data[idx] = 30;
-                                        data[idx+1] = 30;
-                                        data[idx+2] = 30;
-                                    } else {
-                                        let nSumR = 0, nSumG = 0, nSumB = 0, nCount = 0;
-                                        for (let dy = -2; dy <= 2; dy++) {
-                                            for (let dx = -2; dx <= 2; dx++) {
-                                                const ny = y + dy;
-                                                const nx = x + dx;
-                                                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-                                                    const nPos = ny * width + nx;
-                                                    if (!isPenDilated[nPos]) {
-                                                        const nIdx = nPos * 4;
-                                                        nSumR += data[nIdx];
-                                                        nSumG += data[nIdx+1];
-                                                        nSumB += data[nIdx+2];
-                                                        nCount++;
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        if (nCount > 0) {
-                                            data[idx] = Math.round(nSumR / nCount);
-                                            data[idx+1] = Math.round(nSumG / nCount);
-                                            data[idx+2] = Math.round(nSumB / nCount);
-                                        } else {
-                                            data[idx] = 245;
-                                            data[idx+1] = 245;
-                                            data[idx+2] = 245;
-                                        }
-                                    }
-                                    continue;
-                                }
-
-                                if (whiteBg && bgLuminance <= 180) {
-                                    const r = data[idx];
-                                    const g = data[idx+1];
-                                    const b = data[idx+2];
-
-                                    const dist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
-                                    if (dist < 90) {
-                                        data[idx] = 255;
-                                        data[idx+1] = 255;
-                                        data[idx+2] = 255;
-                                    } else {
-                                        data[idx] = 255 - r;
-                                        data[idx+1] = 255 - g;
-                                        data[idx+2] = 255 - b;
-                                    }
+                                const dist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                                if (dist < 90) {
+                                    data[i] = 255;
+                                    data[i+1] = 255;
+                                    data[i+2] = 255;
+                                } else {
+                                    data[i] = 255 - r;
+                                    data[i+1] = 255 - g;
+                                    data[i+2] = 255 - b;
                                 }
                             }
                         }
