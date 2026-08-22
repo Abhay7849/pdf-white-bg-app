@@ -209,7 +209,7 @@
     <!-- Hidden Canvas for Image Processing -->
     <canvas id="offscreenCanvas" class="hidden"></canvas>
 
-    <!-- Client-Side App Logic with Dilated Pen Mark Eraser Engine -->
+    <!-- Client-Side App Logic with Dilated Neighbor Inpainting Engine -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const dropZone = document.getElementById('dropZone');
@@ -332,7 +332,7 @@
                                     const g = data[idx+1];
                                     const b = data[idx+2];
 
-                                    // Flexible blue pen detection
+                                    // Precision Blue Pen Ink threshold
                                     if ((b > r + 20) && (b > g - 15) && (b > 65) && (r < 220 || g < 220)) {
                                         isPen[y * width + x] = 1;
                                     }
@@ -340,17 +340,18 @@
                             }
                         }
 
-                        // Step 2: 3x3 Morphological Dilation in JS to capture anti-aliased pen edges
+                        // Step 2: 5x5 Morphological Dilation in JS to capture all anti-aliased pen edges
                         const isPenDilated = new Uint8Array(totalPixels);
                         if (removePen) {
-                            for (let y = 1; y < height - 1; y++) {
-                                for (let x = 1; x < width - 1; x++) {
+                            for (let y = 2; y < height - 2; y++) {
+                                for (let x = 2; x < width - 2; x++) {
                                     const pos = y * width + x;
-                                    if (isPen[pos] || isPen[pos - 1] || isPen[pos + 1] ||
-                                        isPen[pos - width] || isPen[pos + width] ||
-                                        isPen[pos - width - 1] || isPen[pos - width + 1] ||
-                                        isPen[pos + width - 1] || isPen[pos + width + 1]) {
-                                        isPenDilated[pos] = 1;
+                                    if (isPen[pos]) {
+                                        for (let dy = -2; dy <= 2; dy++) {
+                                            for (let dx = -2; dx <= 2; dx++) {
+                                                isPenDilated[(y + dy) * width + (x + dx)] = 1;
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -372,17 +373,42 @@
 
                         const bgLuminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB);
 
-                        // Step 3: Apply Pen Erasing and Background Conversion
+                        // Step 3: Fast Neighbor Inpainting for Erased Pen Marks & Background Conversion
                         for (let y = 0; y < height; y++) {
                             for (let x = 0; x < width; x++) {
                                 const pos = y * width + x;
                                 const idx = pos * 4;
 
-                                // Erase Dilated Pen Marks to Pure White
+                                // Erase Dilated Pen Marks to Local Neighbor Background Color
                                 if (removePen && isPenDilated[pos]) {
-                                    data[idx] = 255;
-                                    data[idx+1] = 255;
-                                    data[idx+2] = 255;
+                                    // Neighbor Inpainting (average non-pen neighbor pixels in 5x5 box)
+                                    let nSumR = 0, nSumG = 0, nSumB = 0, nCount = 0;
+                                    for (let dy = -2; dy <= 2; dy++) {
+                                        for (let dx = -2; dx <= 2; dx++) {
+                                            const ny = y + dy;
+                                            const nx = x + dx;
+                                            if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                                                const nPos = ny * width + nx;
+                                                if (!isPenDilated[nPos]) {
+                                                    const nIdx = nPos * 4;
+                                                    nSumR += data[nIdx];
+                                                    nSumG += data[nIdx+1];
+                                                    nSumB += data[nIdx+2];
+                                                    nCount++;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (nCount > 0) {
+                                        data[idx] = Math.round(nSumR / nCount);
+                                        data[idx+1] = Math.round(nSumG / nCount);
+                                        data[idx+2] = Math.round(nSumB / nCount);
+                                    } else {
+                                        data[idx] = 255;
+                                        data[idx+1] = 255;
+                                        data[idx+2] = 255;
+                                    }
                                     continue;
                                 }
 
@@ -408,7 +434,7 @@
                         ctx.putImageData(imgData, 0, 0);
 
                         const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                        const jpegBytes = await fetch(jpegDataUrl).then(res => res.read ? res.arrayBuffer() : res.arrayBuffer());
+                        const jpegBytes = await fetch(jpegDataUrl).then(res => res.arrayBuffer());
                         const embeddedJpg = await outPdf.embedJpg(jpegBytes);
 
                         const newPage = outPdf.addPage([viewport.width, viewport.height]);
